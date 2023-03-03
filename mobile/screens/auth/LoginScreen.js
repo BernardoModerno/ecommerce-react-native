@@ -4,12 +4,16 @@ import { colors } from "../../constants";
 import CustomInput from "../../components/CustomInput";
 import header_logo from "../../assets/logo/logo.png";
 import CustomButton from "../../components/CustomButton";
+import CustomAlert from "../../components/CustomAlert/CustomAlert";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const loginHandle = () => {
+    console.log(email, password);
+    setError("Email Valid");
     alert("login btn clicked");
   };
 
@@ -29,6 +33,7 @@ const LoginScreen = ({ navigation }) => {
         <Text style={styles.screenNameText}>Login</Text>
       </View>
       <View style={styles.formContainer}>
+        <CustomAlert message={error} type={"error"} />
         <CustomInput
           value={email}
           setValue={setEmail}
