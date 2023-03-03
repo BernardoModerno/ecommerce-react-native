@@ -3,20 +3,20 @@ import React from "react";
 import { colors } from "../../constants";
 
 const SignupScreen = ({ navigation }) => {
-    return (
-        <View style={styles.container}>
-            <Text onPress={() => navigation.replace("login")}>Login Screen</Text>
-        </View>
-    );
+  return (
+    <View style={styles.container}>
+      <Text onPress={() => navigation.replace("login")}>Login Screen</Text>
+    </View>
+  );
 };
 
 export default SignupScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.light,
-        alignItems: "center",
-        justifyContent: "center",
-    },
+  container: {
+    flex: 1,
+    backgroundColor: colors.light,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
