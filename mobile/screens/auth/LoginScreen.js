@@ -28,11 +28,8 @@ const LoginScreen = ({ navigation }) => {
     alert("Logged in successfully!!");
   };
 
-  // const keyboardVerticalOffset = Platform.OS === 'android' ? 40 : 0
-
   return (
     <KeyboardAvoidingView 
-    // behavior={Platform.OS === "ios" ? "padding" : "height"}
     style={styles.container}>
       <ScrollView>
       <StatusBar></StatusBar>
@@ -109,7 +106,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     height: "30%",
-    // padding:15
   },
   formContainer: {
     flex: 3,
