@@ -1,13 +1,18 @@
-import { StyleSheet, Text, Image, StatusBar, View, KeyboardAvoidingView, ScrollView, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, Image, StatusBar, View, KeyboardAvoidingView, ScrollView } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  Image,
+  StatusBar,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React, { useState } from "react";
 import { colors } from "../../constants";
 import CustomInput from "../../components/CustomInput";
 import header_logo from "../../assets/logo/logo.png";
 import CustomButton from "../../components/CustomButton";
 import { Ionicons } from "@expo/vector-icons";
-import CustomAlert from "../../components/CustomAlert/CustomAlert";
-
-
 
 const SignupScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -17,20 +22,24 @@ const SignupScreen = ({ navigation }) => {
   const [error, setError] = useState("");
 
   const signUpHandle = () => {
-    console.log(email, password, name);
-    setError("")
+    // if email does not contain @ sign
     if(!email.includes("@")){
       return setError("Email is not valid")
     }
+    // length of email must be greater than 5 characters
     if(email.length < 6){
       return setError("Email is too short")
     }
+    // length of password must be greater than 7 characters
     if(password.length < 8){
       return setError("Password must be 8 characters long")
     }
+    // if confirm password doesnot match password
     if(password != confirmPassword){
       return setError("password does not match")
     }
+    setError("")
+    // if no error occured
     return alert("Signed Up Successfully!!");
   };
   return (
