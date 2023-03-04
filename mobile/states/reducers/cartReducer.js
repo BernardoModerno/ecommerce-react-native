@@ -55,6 +55,12 @@ const reducer = (state = [], action) => {
           }
         });
       }
+    case actions.EMPTY_CART:
+      if (action.payload === "empty") {
+        state.splice(0, state.length);
+        return state;
+      }
+
     default:
       return state;
   }

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Text,
   ScrollView,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect } from "react";
@@ -15,16 +16,35 @@ import { useSelector, useDispatch } from "react-redux";
 import * as actionCreaters from "../../states/actionCreaters/actionCreaters";
 import { bindActionCreators } from "redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomInput from "../../components/CustomInput";
+import ProgressDialog from "react-native-progress-dialog";
 
 const CheckoutScreen = ({ navigation, route }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isloading, setIsloading] = useState(false);
   const cartproduct = useSelector((state) => state.product);
   const dispatch = useDispatch();
+  const { emptyCart } = bindActionCreators(actionCreaters, dispatch);
 
   const handleCheckout = () => {
     confirmCheckout();
   };
 
+  const [deliveryCost, setDeliveryCost] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
+  const [address, setAddress] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [zipcode, setZipcode] = useState("");
+
+  const logout = async () => {
+    await AsyncStorage.removeItem("authUser");
+    navigation.replace("login");
+  };
+
   const confirmCheckout = async () => {
+    setIsloading(true);
     var myHeaders = new Headers();
     const value = await AsyncStorage.getItem("authUser");
     let user = JSON.parse(value);
@@ -34,22 +54,27 @@ const CheckoutScreen = ({ navigation, route }) => {
     myHeaders.append("Content-Type", "application/json");
 
     var payload = [];
-    var amount = 0;
+    var totalamount = 0;
     cartproduct.forEach((product) => {
       let obj = {
         productId: product._id,
         price: product.price,
         quantity: product.quantity,
       };
-      amount += parseInt(product.price) * parseInt(product.quantity);
+      totalamount += parseInt(product.price) * parseInt(product.quantity);
       payload.push(obj);
     });
 
     var raw = JSON.stringify({
       items: payload,
-      amount: amount,
+      amount: totalamount,
       discount: 0,
       payment_type: "cod",
+      country: country,
+      status: "pending",
+      city: city,
+      zipcode: zipcode,
+      shippingAddress: streetAddress,
     });
 
     var requestOptions = {
@@ -62,23 +87,32 @@ const CheckoutScreen = ({ navigation, route }) => {
     fetch(network.serverip + "/checkout", requestOptions)
       .then((response) => response.json())
       .then((result) => {
+        console.log("Checkout=>", result);
+        if (result.err === "jwt expired") {
+          setIsloading(false);
+          logout();
+        }
         if (result.success == true) {
+          setIsloading(false);
+          emptyCart("empty");
           navigation.navigate("orderconfirm");
         }
       })
-      .catch((error) => console.log("error", error));
+      .catch((error) => {
+        setIsloading(false);
+        console.log("error", error);
+      });
   };
 
-  const [deliveryCost, setDeliveryCost] = useState(0);
-  const [totalCost, setTotalCost] = useState(180);
-  const [address, setAddress] = useState(
-    "House No.363, Street No, Lalazar Coloney, Jhang"
-  );
-
   useEffect(() => {
+    if (streetAddress && city && country != "") {
+      setAddress(`${streetAddress}, ${city},${country}`);
+    } else {
+      setAddress("");
+    }
     setTotalCost(
       cartproduct.reduce((accumulator, object) => {
-        return (accumulator + object.price) * object.quantity;
+        return accumulator + object.price * object.quantity;
       }, 0)
     );
   }, []);
@@ -86,6 +120,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar></StatusBar>
+      <ProgressDialog visible={isloading} label={"Placing Order..."} />
       <View style={styles.topBarContainer}>
         <TouchableOpacity
           onPress={() => {
@@ -148,20 +183,27 @@ const CheckoutScreen = ({ navigation, route }) => {
         </View>
         <Text style={styles.primaryText}>Address</Text>
         <View style={styles.listContainer}>
-          <View style={styles.list}>
+          <TouchableOpacity
+            style={styles.list}
+            onPress={() => setModalVisible(true)}
+          >
             <Text style={styles.secondaryTextSm}>Address</Text>
             <View>
-              <Text
-                style={styles.secondaryTextSm}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {address.length < 25
-                  ? `${address}`
-                  : `${address.substring(0, 25)}...`}
-              </Text>
+              {country || city || streetAddress != "" ? (
+                <Text
+                  style={styles.secondaryTextSm}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {address.length < 25
+                    ? `${address}`
+                    : `${address.substring(0, 25)}...`}
+                </Text>
+              ) : (
+                <Text style={styles.primaryTextSm}>Add</Text>
+              )}
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
         <Text style={styles.primaryText}>Payment</Text>
         <View style={styles.listContainer}>
@@ -170,15 +212,70 @@ const CheckoutScreen = ({ navigation, route }) => {
             <Text style={styles.primaryTextSm}>Cash On Delivery</Text>
           </View>
         </View>
-        <View style={styles.buttomContainer}>
+
+        <View style={styles.emptyView}></View>
+      </ScrollView>
+      <View style={styles.buttomContainer}>
+        {country && city && streetAddress != "" ? (
           <CustomButton
             text={"Submit Order"}
             // onPress={() => navigation.replace("orderconfirm")}
             onPress={handleCheckout}
           />
+        ) : (
+          <CustomButton text={"Submit Order"} disabled />
+        )}
+      </View>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}
+      >
+        <View style={styles.modelBody}>
+          <View style={styles.modelAddressContainer}>
+            <CustomInput
+              value={country}
+              setValue={setCountry}
+              placeholder={"Enter Country"}
+            />
+            <CustomInput
+              value={city}
+              setValue={setCity}
+              placeholder={"Enter City"}
+            />
+            <CustomInput
+              value={streetAddress}
+              setValue={setStreetAddress}
+              placeholder={"Enter Street Address"}
+            />
+            <CustomInput
+              value={zipcode}
+              setValue={setZipcode}
+              placeholder={"Enter ZipCode"}
+              keyboardType={"number-pad"}
+            />
+            {streetAddress || city || country != "" ? (
+              <CustomButton
+                onPress={() => {
+                  setModalVisible(!modalVisible);
+                  setAddress(`${streetAddress}, ${city},${country}`);
+                }}
+                text={"save"}
+              />
+            ) : (
+              <CustomButton
+                onPress={() => {
+                  setModalVisible(!modalVisible);
+                }}
+                text={"close"}
+              />
+            )}
+          </View>
         </View>
-        <View style={styles.emptyView}></View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 };
@@ -256,10 +353,32 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   buttomContainer: {
+    width: "100%",
     padding: 20,
+    paddingLeft: 30,
+    paddingRight: 30,
   },
   emptyView: {
     width: "100%",
     height: 20,
+  },
+  modelBody: {
+    flex: 1,
+    display: "flex",
+    flexL: "column",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modelAddressContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    width: 320,
+    height: 400,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    elevation: 3,
   },
 });

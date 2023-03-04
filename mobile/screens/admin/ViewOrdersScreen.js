@@ -6,119 +6,91 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { colors, network } from "../../constants";
 import { Ionicons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
-import ProductList from "../../components/ProductList/ProductList";
 import CustomAlert from "../../components/CustomAlert/CustomAlert";
-import CustomInput from "../../components/CustomInput/";
+import CustomInput from "../../components/CustomInput";
 import ProgressDialog from "react-native-progress-dialog";
+import OrderList from "../../components/OrderList/OrderList";
 
-const ViewProductScreen = ({ navigation, route }) => {
+const ViewOrdersScreen = ({ navigation, route }) => {
   const { authUser } = route.params;
+  const [user, setUser] = useState({});
+
+  const getToken = (obj) => {
+    try {
+      setUser(JSON.parse(obj));
+    } catch (e) {
+      setUser(obj);
+      return obj.token;
+    }
+    return JSON.parse(obj).token;
+  };
+
   const [isloading, setIsloading] = useState(false);
   const [refeshing, setRefreshing] = useState(false);
   const [alertType, setAlertType] = useState("error");
 
   const [label, setLabel] = useState("Loading...");
   const [error, setError] = useState("");
-  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [foundItems, setFoundItems] = useState([]);
   const [filterItem, setFilterItem] = useState("");
 
-  var myHeaders = new Headers();
-  myHeaders.append("x-auth-token", authUser.token);
-
-  var requestOptions = {
-    method: "GET",
-    headers: myHeaders,
-    redirect: "follow",
-  };
-
-  var ProductListRequestOptions = {
-    method: "GET",
-    redirect: "follow",
-  };
-
   const handleOnRefresh = () => {
     setRefreshing(true);
-    fetchProduct();
+    fetchOrders();
     setRefreshing(false);
   };
 
-  const handleDelete = (id) => {
-    setIsloading(true);
-    console.log(`${network.serverip}/delete-product?id=${id}`);
-    fetch(`${network.serverip}/delete-product?id=${id}`, requestOptions)
-      .then((response) => response.json())
-      .then((result) => {
-        if (result.success) {
-          fetchProduct();
-          setError(result.message);
-          setAlertType("success");
-        } else {
-          setError(result.message);
-          setAlertType("error");
-        }
-        setIsloading(false);
-      })
-      .catch((error) => {
-        setIsloading(false);
-        setError(error.message);
-        console.log("error", error);
-      });
+  const handleOrderDetail = (item) => {
+    navigation.navigate("vieworderdetails", {
+      orderDetail: item,
+      Token: getToken(authUser),
+    });
   };
 
-  const showConfirmDialog = (id) => {
-    return Alert.alert(
-      "Are your sure?",
-      "Are you sure you want to delete the category?",
-      [
-        {
-          text: "Yes",
-          onPress: () => {
-            handleDelete(id);
-          },
-        },
-        {
-          text: "No",
-        },
-      ]
-    );
-  };
-  const fetchProduct = () => {
-    fetch(`${network.serverip}/products`, ProductListRequestOptions)
+  const fetchOrders = () => {
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", getToken(authUser));
+
+    var requestOptions = {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    };
+    setIsloading(true);
+    fetch(`${network.serverip}/admin/orders`, requestOptions)
       .then((response) => response.json())
       .then((result) => {
         if (result.success) {
-          setProducts(result.data);
+          setOrders(result.data);
           setFoundItems(result.data);
           setError("");
-          setIsloading(false);
         } else {
           setError(result.message);
-          setIsloading(false);
         }
+        setIsloading(false);
       })
       .catch((error) => {
+        setIsloading(false);
         setError(error.message);
         console.log("error", error);
-        setIsloading(false);
       });
   };
 
   const filter = () => {
     const keyword = filterItem;
     if (keyword !== "") {
-      const results = products?.filter((product) => {
-        return product?.title.toLowerCase().includes(keyword.toLowerCase());
+      const results = orders?.filter((item) => {
+        return item?.orderId.toLowerCase().includes(keyword.toLowerCase());
       });
       setFoundItems(results);
     } else {
-      setFoundItems(products);
+      setFoundItems(orders);
     }
   };
 
@@ -127,8 +99,7 @@ const ViewProductScreen = ({ navigation, route }) => {
   }, [filterItem]);
 
   useEffect(() => {
-    setIsloading(true);
-    fetchProduct();
+    fetchOrders();
   }, []);
 
   return (
@@ -147,20 +118,13 @@ const ViewProductScreen = ({ navigation, route }) => {
             color={colors.muted}
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("addproduct", { authUser: authUser });
-          }}
-        >
-          <AntDesign name="plussquare" size={30} color={colors.muted} />
-        </TouchableOpacity>
       </View>
       <View style={styles.screenNameContainer}>
         <View>
-          <Text style={styles.screenNameText}>View Product</Text>
+          <Text style={styles.screenNameText}>View Order</Text>
         </View>
         <View>
-          <Text style={styles.screenNameParagraph}>View all products</Text>
+          <Text style={styles.screenNameParagraph}>View all orders</Text>
         </View>
       </View>
       <CustomAlert message={error} type={alertType} />
@@ -171,36 +135,21 @@ const ViewProductScreen = ({ navigation, route }) => {
         setValue={setFilterItem}
       />
       <ScrollView
-        style={{ flex: 1, width: "100%" }}
+        style={{ flex: 1, width: "100%", padding: 2 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refeshing} onRefresh={handleOnRefresh} />
         }
       >
         {foundItems && foundItems.length == 0 ? (
-          <Text>{`No product found with the name of ${filterItem}!`}</Text>
+          <Text>{`No order found with the order # ${filterItem}!`}</Text>
         ) : (
-          foundItems.map((product, index) => {
+          foundItems.map((order, index) => {
             return (
-              <ProductList
+              <OrderList
+                item={order}
                 key={index}
-                image={`${network.serverip}/uploads/${product?.image}`}
-                title={product?.title}
-                category={product?.category?.title}
-                price={product?.price}
-                qantity={product?.sku}
-                onPressView={() => {
-                  console.log("view is working " + product._id);
-                }}
-                onPressEdit={() => {
-                  navigation.navigate("editproduct", {
-                    product: product,
-                    authUser: authUser,
-                  });
-                }}
-                onPressDelete={() => {
-                  showConfirmDialog(product._id);
-                }}
+                onPress={() => handleOrderDetail(order)}
               />
             );
           })
@@ -210,7 +159,7 @@ const ViewProductScreen = ({ navigation, route }) => {
   );
 };
 
-export default ViewProductScreen;
+export default ViewOrdersScreen;
 
 const styles = StyleSheet.create({
   container: {

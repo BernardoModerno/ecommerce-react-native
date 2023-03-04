@@ -7,13 +7,13 @@ import {
   Image,
   FlatList,
   RefreshControl,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import cartIcon from "../../assets/icons/cart_beg.png";
 import scanIcon from "../../assets/icons/scan_icons.png";
 import easybuylogo from "../../assets/logo/logo.png";
-import CustomInput from "../../components/CustomInput";
 import { colors } from "../../constants";
 import CustomIconButton from "../../components/CustomIconButton/CustomIconButton";
 import ProductCard from "../../components/ProductCard/ProductCard";
@@ -21,65 +21,42 @@ import { network } from "../../constants";
 import { useSelector, useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import * as actionCreaters from "../../states/actionCreaters/actionCreaters";
+import SearchableDropdown from "react-native-searchable-dropdown";
+import { SliderBox } from "react-native-image-slider-box";
 
 const category = [
   {
-    id: "1",
+    _id: "62fe244f58f7aa8230817f89",
     title: "Garments",
     image: require("../../assets/icons/garments.png"),
   },
   {
-    id: "2",
+    _id: "62fe243858f7aa8230817f86",
     title: "Electornics",
     image: require("../../assets/icons/electronics.png"),
   },
   {
-    id: "3",
+    _id: "62fe241958f7aa8230817f83",
     title: "Cosmentics",
     image: require("../../assets/icons/cosmetics.png"),
   },
   {
-    id: "4",
+    _id: "62fe246858f7aa8230817f8c",
     title: "Groceries",
     image: require("../../assets/icons/grocery.png"),
   },
 ];
 
-// const product = [
-//   {
-//     id: 1,
-//     title: "product1",
-//     price: 113,
-//     image: require("../../assets/image/shirt.png"),
-//   },
-//   {
-//     id: 2,
-//     title: "product2",
-//     price: 123,
-//     image: require("../../assets/image/shirt1.png"),
-//   },
-//   {
-//     id: 3,
-//     title: "product3",
-//     price: 233,
-//     image: require("../../assets/image/shirt2.png"),
-//   },
-//   {
-//     id: 4,
-//     title: "product4",
-//     price: 343,
-//     image: require("../../assets/image/shirt2.png"),
-//   },
-// ];
+const slides = [
+  require("../../assets/image/banners/banner.jpeg"),
+  require("../../assets/image/banners/banner.jpeg"),
+];
 
 const HomeScreen = ({ navigation, route }) => {
   const cartproduct = useSelector((state) => state.product);
   const dispatch = useDispatch();
 
-  const { addCartItem, removeCartItem } = bindActionCreators(
-    actionCreaters,
-    dispatch
-  );
+  const { addCartItem } = bindActionCreators(actionCreaters, dispatch);
 
   const { user } = route.params;
   const [isLoading, setLoading] = useState(true);
@@ -87,8 +64,17 @@ const HomeScreen = ({ navigation, route }) => {
   const [refeshing, setRefreshing] = useState(false);
   const [label, setLabel] = useState("Loading...");
   const [error, setError] = useState("");
+  const [userInfo, setUserInfo] = useState({});
+  const [searchItems, setSearchItems] = useState([]);
 
-  // console.log(user);
+  const convertToJSON = (obj) => {
+    try {
+      setUserInfo(JSON.parse(obj));
+    } catch (e) {
+      console.log("converttoJSON:", e);
+      setUserInfo(obj);
+    }
+  };
 
   const handleProductPress = (product) => {
     navigation.navigate("productdetail", { product: product });
@@ -110,6 +96,12 @@ const HomeScreen = ({ navigation, route }) => {
         if (result.success) {
           setProducts(result.data);
           setError("");
+          let payload = [];
+          result.data.forEach((cat, index) => {
+            let searchableItem = { ...cat, id: ++index, name: cat.title };
+            payload.push(searchableItem);
+          });
+          setSearchItems(payload);
         } else {
           setError(result.message);
         }
@@ -127,19 +119,21 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
+    convertToJSON(user);
     fetchProduct();
-    // console.log("cart", cartproduct);
   }, []);
 
   return (
     <View style={styles.container}>
       <StatusBar></StatusBar>
       <View style={styles.topBarContainer}>
-        <TouchableOpacity>
+        <TouchableOpacity disabled>
           <Ionicons name="menu" size={30} color={colors.muted} />
         </TouchableOpacity>
-        <View>
-          <Text style={styles.toBarText}>Home</Text>
+        <View style={styles.topbarlogoContainer}>
+          {/* <Text style={styles.toBarText}>Home</Text> */}
+          <Image source={easybuylogo} style={styles.logo} />
+          <Text>EasyBuy</Text>
         </View>
         <TouchableOpacity
           style={styles.cartIconContainer}
@@ -156,15 +150,47 @@ const HomeScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
       <View style={styles.bodyContainer}>
-        <View style={styles.logoContainer}>
-          <Image source={easybuylogo} style={styles.logo} />
-          <View>
-            <Text style={styles.secondaryText}>EasyBuy</Text>
-          </View>
-        </View>
         <View style={styles.searchContainer}>
           <View style={styles.inputContainer}>
-            <CustomInput radius={5} placeholder={"Search...."} />
+            <SearchableDropdown
+              onTextChange={(text) => console.log(text)}
+              onItemSelect={(item) => handleProductPress(item)}
+              defaultIndex={0}
+              containerStyle={{
+                borderRadius: 5,
+                width: "100%",
+                elevation: 5,
+                position: "absolute",
+                zIndex: 20,
+                top: -20,
+                maxHeight: 300,
+                backgroundColor: colors.light,
+              }}
+              textInputStyle={{
+                borderRadius: 10,
+                padding: 6,
+                paddingLeft: 10,
+                borderWidth: 0,
+                backgroundColor: colors.white,
+              }}
+              itemStyle={{
+                padding: 10,
+                marginTop: 2,
+                backgroundColor: colors.white,
+                borderColor: colors.muted,
+              }}
+              itemTextStyle={{
+                color: colors.muted,
+              }}
+              itemsContainerStyle={{
+                maxHeight: "100%",
+              }}
+              items={searchItems}
+              placeholder="Search..."
+              resetValue={false}
+              underlineColorAndroid="transparent"
+            />
+            {/* <CustomInput radius={5} placeholder={"Search...."} /> */}
           </View>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.scanButton}>
@@ -173,6 +199,24 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </View>
+        <View style={styles.promotiomSliderContainer}>
+          <SliderBox
+            images={slides}
+            sliderBoxHeight={140}
+            dotColor={colors.primary}
+            inactiveDotColor={colors.muted}
+            paginationBoxVerticalPadding={10}
+            autoplayInterval={6000}
+          />
+        </View>
+        {/* Pervious person design */}
+        {/* <View style={styles.logoContainer}>
+          <Image source={easybuylogo} style={styles.logo} />
+          <View>
+            <Text style={styles.secondaryText}>EasyBuy</Text>
+          </View>
+        </View> */}
+
         <View style={styles.primaryTextContainer}>
           <Text style={styles.primaryText}>Categories</Text>
         </View>
@@ -182,16 +226,16 @@ const HomeScreen = ({ navigation, route }) => {
             style={styles.flatListContainer}
             horizontal={true}
             data={category}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item}-${index}`}
             renderItem={({ item, index }) => (
-              <View
-                style={{ marginLeft: 5, marginBottom: 10, marginRight: 5 }}
-                key={index}
-              >
+              <View style={{ marginBottom: 10 }} key={index}>
                 <CustomIconButton
                   key={index}
                   text={item.title}
                   image={item.image}
+                  onPress={() =>
+                    navigation.jumpTo("categories", { categoryID: item })
+                  }
                 />
               </View>
             )}
@@ -199,7 +243,7 @@ const HomeScreen = ({ navigation, route }) => {
           <View style={styles.emptyView}></View>
         </View>
         <View style={styles.primaryTextContainer}>
-          <Text style={styles.primaryText}>Most Viewed Products</Text>
+          <Text style={styles.primaryText}>New Arrivals</Text>
         </View>
         {products.length === 0 ? (
           <View style={styles.productCardContainerEmpty}>
@@ -215,8 +259,9 @@ const HomeScreen = ({ navigation, route }) => {
                 />
               }
               showsHorizontalScrollIndicator={false}
+              initialNumToRender={5}
               horizontal={true}
-              data={products}
+              data={products.reverse().slice(0, 4)}
               keyExtractor={(item) => item._id}
               renderItem={({ item, index }) => (
                 <View
@@ -266,6 +311,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  topbarlogoContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   bodyContainer: {
     width: "100%",
     flexDirecion: "row",
@@ -282,8 +332,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
   },
   logo: {
-    height: 40,
-    width: 40,
+    height: 30,
+    width: 30,
     resizeMode: "contain",
   },
   secondaryText: {
@@ -291,6 +341,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   searchContainer: {
+    marginTop: 10,
     padding: 10,
     width: "100%",
     display: "flex",
@@ -344,6 +395,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginLeft: 10,
   },
+  promotiomSliderContainer: {
+    margin: 5,
+
+    height: 140,
+    backgroundColor: colors.light,
+  },
   categoryContainer: {
     display: "flex",
     flexDirection: "row",
@@ -353,9 +410,9 @@ const styles = StyleSheet.create({
     height: 60,
     marginLeft: 10,
   },
-  emptyView: { width: 20 },
+  emptyView: { width: 10 },
   productCardContainer: {
-    padding: 10,
+    paddingLeft: 10,
     display: "flex",
     flexDirection: "row",
     justifyContent: "flex-start",

@@ -15,7 +15,6 @@ const CartProductList = ({
   onPressDecrement,
   onPressIncrement,
 }) => {
-  console.log(`${network.serverip}/uploads/${image}`);
   const rightSwipe = () => {
     return (
       <View style={styles.deleteButtonContainer}>
@@ -42,7 +41,7 @@ const CartProductList = ({
             </View>
             <View style={styles.productInfoContainer}>
               <Text style={styles.productTitle}>{title}</Text>
-              <Text style={styles.productTitle}>{quantity}</Text>
+              <Text style={styles.productQuantitySm}>x{quantity}</Text>
               <View style={styles.productListBottomContainer}>
                 <Text style={styles.productPrice}>{price * quantity} $</Text>
 
@@ -113,6 +112,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: colors.dark,
+  },
+  productQuantitySm: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: colors.muted,
   },
   productPrice: {
     fontSize: 15,

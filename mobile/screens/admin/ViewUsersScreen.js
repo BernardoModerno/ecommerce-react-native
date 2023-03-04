@@ -6,120 +6,88 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { colors, network } from "../../constants";
 import { Ionicons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
-import ProductList from "../../components/ProductList/ProductList";
 import CustomAlert from "../../components/CustomAlert/CustomAlert";
 import CustomInput from "../../components/CustomInput/";
 import ProgressDialog from "react-native-progress-dialog";
+import UserList from "../../components/UserList/UserList";
 
-const ViewProductScreen = ({ navigation, route }) => {
+const ViewUsersScreen = ({ navigation, route }) => {
+  const [name, setName] = useState("");
   const { authUser } = route.params;
+  const [user, setUser] = useState({});
+
+  const getToken = (obj) => {
+    try {
+      setUser(JSON.parse(obj));
+    } catch (e) {
+      setUser(obj);
+      return obj.token;
+    }
+    return JSON.parse(obj).token;
+  };
+
   const [isloading, setIsloading] = useState(false);
   const [refeshing, setRefreshing] = useState(false);
   const [alertType, setAlertType] = useState("error");
 
   const [label, setLabel] = useState("Loading...");
   const [error, setError] = useState("");
-  const [products, setProducts] = useState([]);
+  const [users, setUsers] = useState([]);
   const [foundItems, setFoundItems] = useState([]);
   const [filterItem, setFilterItem] = useState("");
 
-  var myHeaders = new Headers();
-  myHeaders.append("x-auth-token", authUser.token);
+  const fetchUsers = () => {
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", getToken(authUser));
 
-  var requestOptions = {
-    method: "GET",
-    headers: myHeaders,
-    redirect: "follow",
-  };
-
-  var ProductListRequestOptions = {
-    method: "GET",
-    redirect: "follow",
+    var requestOptions = {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    };
+    setIsloading(true);
+    fetch(`${network.serverip}/admin/users`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          setUsers(result.data);
+          setFoundItems(result.data);
+          setError("");
+        } else {
+          setError(result.message);
+        }
+        setIsloading(false);
+      })
+      .catch((error) => {
+        setIsloading(false);
+        setError(error.message);
+        console.log("error", error);
+      });
   };
 
   const handleOnRefresh = () => {
     setRefreshing(true);
-    fetchProduct();
+    fetchUsers();
     setRefreshing(false);
-  };
-
-  const handleDelete = (id) => {
-    setIsloading(true);
-    console.log(`${network.serverip}/delete-product?id=${id}`);
-    fetch(`${network.serverip}/delete-product?id=${id}`, requestOptions)
-      .then((response) => response.json())
-      .then((result) => {
-        if (result.success) {
-          fetchProduct();
-          setError(result.message);
-          setAlertType("success");
-        } else {
-          setError(result.message);
-          setAlertType("error");
-        }
-        setIsloading(false);
-      })
-      .catch((error) => {
-        setIsloading(false);
-        setError(error.message);
-        console.log("error", error);
-      });
-  };
-
-  const showConfirmDialog = (id) => {
-    return Alert.alert(
-      "Are your sure?",
-      "Are you sure you want to delete the category?",
-      [
-        {
-          text: "Yes",
-          onPress: () => {
-            handleDelete(id);
-          },
-        },
-        {
-          text: "No",
-        },
-      ]
-    );
-  };
-  const fetchProduct = () => {
-    fetch(`${network.serverip}/products`, ProductListRequestOptions)
-      .then((response) => response.json())
-      .then((result) => {
-        if (result.success) {
-          setProducts(result.data);
-          setFoundItems(result.data);
-          setError("");
-          setIsloading(false);
-        } else {
-          setError(result.message);
-          setIsloading(false);
-        }
-      })
-      .catch((error) => {
-        setError(error.message);
-        console.log("error", error);
-        setIsloading(false);
-      });
   };
 
   const filter = () => {
     const keyword = filterItem;
     if (keyword !== "") {
-      const results = products?.filter((product) => {
-        return product?.title.toLowerCase().includes(keyword.toLowerCase());
+      const results = users.filter((user) => {
+        return user.name.toLowerCase().includes(keyword.toLowerCase());
       });
+
       setFoundItems(results);
     } else {
-      setFoundItems(products);
+      setFoundItems(users);
     }
+    setName(keyword);
   };
 
   useEffect(() => {
@@ -127,8 +95,7 @@ const ViewProductScreen = ({ navigation, route }) => {
   }, [filterItem]);
 
   useEffect(() => {
-    setIsloading(true);
-    fetchProduct();
+    fetchUsers();
   }, []);
 
   return (
@@ -147,20 +114,16 @@ const ViewProductScreen = ({ navigation, route }) => {
             color={colors.muted}
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("addproduct", { authUser: authUser });
-          }}
-        >
-          <AntDesign name="plussquare" size={30} color={colors.muted} />
+        <TouchableOpacity disabled>
+          <AntDesign name="user" size={25} color={colors.primary} />
         </TouchableOpacity>
       </View>
       <View style={styles.screenNameContainer}>
         <View>
-          <Text style={styles.screenNameText}>View Product</Text>
+          <Text style={styles.screenNameText}>View Users</Text>
         </View>
         <View>
-          <Text style={styles.screenNameParagraph}>View all products</Text>
+          <Text style={styles.screenNameParagraph}>View all Users</Text>
         </View>
       </View>
       <CustomAlert message={error} type={alertType} />
@@ -178,39 +141,23 @@ const ViewProductScreen = ({ navigation, route }) => {
         }
       >
         {foundItems && foundItems.length == 0 ? (
-          <Text>{`No product found with the name of ${filterItem}!`}</Text>
+          <Text>{`No user found with the name of ${filterItem}!`}</Text>
         ) : (
-          foundItems.map((product, index) => {
-            return (
-              <ProductList
-                key={index}
-                image={`${network.serverip}/uploads/${product?.image}`}
-                title={product?.title}
-                category={product?.category?.title}
-                price={product?.price}
-                qantity={product?.sku}
-                onPressView={() => {
-                  console.log("view is working " + product._id);
-                }}
-                onPressEdit={() => {
-                  navigation.navigate("editproduct", {
-                    product: product,
-                    authUser: authUser,
-                  });
-                }}
-                onPressDelete={() => {
-                  showConfirmDialog(product._id);
-                }}
-              />
-            );
-          })
+          foundItems.map((item, index) => (
+            <UserList
+              key={index}
+              username={item?.name}
+              email={item?.email}
+              usertype={item?.userType}
+            />
+          ))
         )}
       </ScrollView>
     </View>
   );
 };
 
-export default ViewProductScreen;
+export default ViewUsersScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -254,6 +201,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "flex-start",
     alignItems: "flex-start",
+    marginBottom: 10,
   },
   screenNameText: {
     fontSize: 30,

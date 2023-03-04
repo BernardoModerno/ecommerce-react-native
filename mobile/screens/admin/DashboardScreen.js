@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,46 +16,103 @@ import CustomCard from "../../components/CustomCard/CustomCard";
 import OptionList from "../../components/OptionList/OptionList";
 import InternetConnectionAlert from "react-native-internet-connection-alert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const data = [
-  {
-    id: 1,
-    title: "User",
-    value: "20",
-    iconName: "person",
-    type: "parimary",
-  },
-  {
-    id: 2,
-    title: "Orders",
-    value: "10",
-    iconName: "cart",
-    type: "secondary",
-  },
-  {
-    id: 3,
-    title: "Product",
-    value: "3",
-    iconName: "md-square",
-    type: "warning",
-  },
-  {
-    id: 4,
-    title: "Catagories",
-    value: "12",
-    iconName: "md-logo-dropbox",
-    type: "muted",
-  },
-];
+import ProgressDialog from "react-native-progress-dialog";
 
 const DashboardScreen = ({ navigation, route }) => {
   const { authUser } = route.params;
-  console.log(authUser);
+  const [user, setUser] = useState(authUser);
+  const [label, setLabel] = useState("Loading...");
+  const [error, setError] = useState("");
+  const [isloading, setIsloading] = useState(false);
+  const [data, setData] = useState([]);
+  const [refeshing, setRefreshing] = useState(false);
+
+  const logout = async () => {
+    await AsyncStorage.removeItem("authUser");
+    navigation.replace("login");
+  };
+
+  var myHeaders = new Headers();
+  myHeaders.append("x-auth-token", authUser.token);
+
+  var requestOptions = {
+    method: "GET",
+    headers: myHeaders,
+    redirect: "follow",
+  };
+
+  const fetchStats = () => {
+    fetch(`${network.serverip}/dashboard`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success == true) {
+          setData([
+            {
+              id: 1,
+              title: "Users",
+              value: result.data?.usersCount,
+              iconName: "person",
+              type: "parimary",
+              screenName: "viewusers",
+            },
+            {
+              id: 2,
+              title: "Orders",
+              value: result.data?.ordersCount,
+              iconName: "cart",
+              type: "secondary",
+              screenName: "vieworder",
+            },
+            {
+              id: 3,
+              title: "Products",
+              value: result.data?.productsCount,
+              iconName: "md-square",
+              type: "warning",
+              screenName: "viewproduct",
+            },
+            {
+              id: 4,
+              title: "Categories",
+              value: result.data?.categoriesCount,
+              iconName: "menu",
+              type: "muted",
+              screenName: "viewcategories",
+            },
+          ]);
+          setError("");
+          setIsloading(false);
+        } else {
+          console.log(result.err);
+          if (result.err == "jwt expired") {
+            logout();
+          }
+          setError(result.message);
+          setIsloading(false);
+        }
+      })
+      .catch((error) => {
+        setError(error.message);
+        console.log("error", error);
+        setIsloading(false);
+      });
+  };
+
+  const handleOnRefresh = () => {
+    setRefreshing(true);
+    fetchStats();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   return (
     <InternetConnectionAlert onChange={(connectionState) => {}}>
       <View style={styles.container}>
         <StatusBar></StatusBar>
+        <ProgressDialog visible={isloading} label={label} />
         <View style={styles.topBarContainer}>
           <TouchableOpacity
             onPress={async () => {
@@ -74,24 +132,36 @@ const DashboardScreen = ({ navigation, route }) => {
               color={colors.muted}
             />
           </TouchableOpacity>
-          
         </View>
         <View style={styles.headingContainer}>
           <MaterialCommunityIcons name="menu-right" size={30} color="black" />
           <Text style={styles.headingText}>Welcome, Bukhtyar</Text>
         </View>
         <View style={{ height: 370 }}>
-          <ScrollView contentContainerStyle={styles.cardContainer}>
-            {data.map((data) => (
-              <CustomCard
-                key={data.id}
-                iconName={data.iconName}
-                title={data.title}
-                value={data.value}
-                type={data.type}
-              />
-            ))}
-        </ScrollView>
+          {data && (
+            <ScrollView
+              refreshControl={
+                <RefreshControl
+                  refreshing={refeshing}
+                  onRefresh={handleOnRefresh}
+                />
+              }
+              contentContainerStyle={styles.cardContainer}
+            >
+              {data.map((data) => (
+                <CustomCard
+                  key={data.id}
+                  iconName={data.iconName}
+                  title={data.title}
+                  value={data.value}
+                  type={data.type}
+                  onPress={() => {
+                    navigation.navigate(data.screenName, { authUser: user });
+                  }}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
         <View style={styles.headingContainer}>
           <MaterialCommunityIcons name="menu-right" size={30} color="black" />
@@ -104,21 +174,44 @@ const DashboardScreen = ({ navigation, route }) => {
               Icon={Ionicons}
               iconName={"md-square"}
               onPress={() =>
-                navigation.navigate("viewproduct", { authUser: authUser })
+                navigation.navigate("viewproduct", { authUser: user })
               }
               onPressSecondary={() =>
-                navigation.navigate("addproduct", { authUser: authUser })
+                navigation.navigate("addproduct", { authUser: user })
               }
               type="morden"
             />
             <OptionList
               text={"Categories"}
               Icon={Ionicons}
-              iconName={"md-logo-dropbox"}
-              onPress={() => console.log("working....")}
-              onPressSecondary={() => console.log("working2....")}
+              iconName={"menu"}
+              onPress={() =>
+                navigation.navigate("viewcategories", { authUser: user })
+              }
+              onPressSecondary={() =>
+                navigation.navigate("addcategories", { authUser: user })
+              }
               type="morden"
             />
+            <OptionList
+              text={"Orders"}
+              Icon={Ionicons}
+              iconName={"cart"}
+              onPress={() =>
+                navigation.navigate("vieworder", { authUser: user })
+              }
+              type="morden"
+            />
+            <OptionList
+              text={"Users"}
+              Icon={Ionicons}
+              iconName={"person"}
+              onPress={() =>
+                navigation.navigate("viewusers", { authUser: user })
+              }
+              type="morden"
+            />
+
             <View style={{ height: 20 }}></View>
           </ScrollView>
         </View>

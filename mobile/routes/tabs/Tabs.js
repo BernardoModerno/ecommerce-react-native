@@ -9,6 +9,8 @@ import HomeIconActive from "../../assets/icons/bar_home_icon_active.png";
 import HomeIcon from "../../assets/icons/bar_home_icon.png";
 import userIcon from "../../assets/icons/bar_profile_icon.png";
 import userIconActive from "../../assets/icons/bar_profile_icon_active.png";
+import MyOrderScreen from "../../screens/user/MyOrderScreen";
+import CategoriesScreen from "../../screens/user/CategoriesScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -17,6 +19,13 @@ const Tabs = ({ navigation, route }) => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: [
+          {
+            display: "flex",
+          },
+          null,
+        ],
         headerShown: false,
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
@@ -36,18 +45,36 @@ const Tabs = ({ navigation, route }) => {
                 )}
               </TouchableOpacity>
             );
-          } else if (routename == "wishlist") {
+          } else if (routename == "categories") {
             return (
               <TouchableOpacity disabled>
                 {focused == true ? (
                   <Ionicons
-                    name="heart-outline"
+                    name="ios-apps-sharp"
                     size={29}
                     color={colors.primary}
                   />
                 ) : (
                   <Ionicons
-                    name="heart-outline"
+                    name="ios-apps-sharp"
+                    size={29}
+                    color={colors.muted}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          } else if (routename == "myorder") {
+            return (
+              <TouchableOpacity disabled>
+                {focused == true ? (
+                  <Ionicons
+                    name="cart-outline"
+                    size={29}
+                    color={colors.primary}
+                  />
+                ) : (
+                  <Ionicons
+                    name="cart-outline"
                     size={29}
                     color={colors.muted}
                   />
@@ -80,14 +107,30 @@ const Tabs = ({ navigation, route }) => {
         name="home"
         component={HomeScreen}
         initialParams={{ user: user }}
+        tabBarOptions={{
+          style: {
+            position: "absolute",
+          },
+        }}
+      />
+      <Tab.Screen
+        name="categories"
+        component={CategoriesScreen}
+        initialParams={{ user: user }}
+        tabBarOptions={{
+          tabBarHideOnKeyboard: true,
+          style: {
+            position: "absolute",
+          },
+        }}
       />
       {
         // Wishlist is ready yet!
-        /* <Tab.Screen
-        name="wishlist"
-        component={HomeScreen}
-        initialParams={{ user: user }}
-      /> */
+        <Tab.Screen
+          name="myorder"
+          component={MyOrderScreen}
+          initialParams={{ user: user }}
+        />
       }
       <Tab.Screen
         name="user"

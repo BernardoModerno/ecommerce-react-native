@@ -17,6 +17,8 @@ import CustomAlert from "../../components/CustomAlert/CustomAlert";
 import * as ImagePicker from "expo-image-picker";
 import ProgressDialog from "react-native-progress-dialog";
 import { AntDesign } from "@expo/vector-icons";
+import { useEffect } from "react";
+import DropDownPicker from "react-native-dropdown-picker";
 
 const AddProductScreen = ({ navigation, route }) => {
   const { authUser } = route.params;
@@ -24,31 +26,102 @@ const AddProductScreen = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [sku, setSku] = useState("");
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState("");
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("garments");
+  const [category, setCategory] = useState("");
+  const [alertType, setAlertType] = useState("error");
+  const [user, setUser] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(null);
+  const [statusDisable, setStatusDisable] = useState(false);
+  const [items, setItems] = useState([
+    { label: "Pending", value: "pending" },
+    { label: "Shipped", value: "shipped" },
+    { label: "Delivered", value: "delivered" },
+  ]);
+  var payload = [];
+
+  const getToken = (obj) => {
+    try {
+      setUser(JSON.parse(obj));
+    } catch (e) {
+      setUser(obj);
+      return obj.token;
+    }
+    return JSON.parse(obj).token;
+  };
+
+  const fetchCategories = () => {
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", getToken(authUser));
+
+    var requestOptions = {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    };
+    setIsloading(true);
+    fetch(`${network.serverip}/categories`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          setCategories(result.categories);
+          result.categories.forEach((cat) => {
+            let obj = {
+              label: cat.title,
+              value: cat._id,
+            };
+            payload.push(obj);
+          });
+          setItems(payload);
+          setError("");
+        } else {
+          setError(result.message);
+        }
+        setIsloading(false);
+      })
+      .catch((error) => {
+        setIsloading(false);
+        setError(error.message);
+        console.log("error", error);
+      });
+  };
 
   var myHeaders = new Headers();
   myHeaders.append("x-auth-token", authUser.token);
   myHeaders.append("Content-Type", "application/json");
 
-  // var raw = JSON.stringify({
-  //   title: title,
-  //   sku: sku,
-  //   price: price,
-  //   image: null,
-  //   description: description,
-  //   category: category,
-  //   quantity: quantity,
-  // });
+  const upload = async () => {
+    console.log("upload-F:", image);
+
+    var formdata = new FormData();
+    formdata.append("photos", image, "product.png");
+
+    var ImageRequestOptions = {
+      method: "POST",
+      body: formdata,
+      redirect: "follow",
+    };
+
+    fetch(
+      "https://api-easybuy.herokuapp.com/photos/upload",
+      ImageRequestOptions
+    )
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result);
+      })
+      .catch((error) => console.log("error", error));
+  };
 
   var raw = JSON.stringify({
     title: title,
     sku: sku,
     price: price,
-    image: "null",
+    image: image,
     description: description,
     category: category,
     quantity: quantity,
@@ -70,10 +143,10 @@ const AddProductScreen = ({ navigation, route }) => {
       quality: 0.5,
     });
 
-    console.log(result);
-
     if (!result.cancelled) {
+      console.log(result);
       setImage(result.uri);
+      upload();
     }
   };
 
@@ -98,16 +171,23 @@ const AddProductScreen = ({ navigation, route }) => {
           console.log(result);
           if (result.success == true) {
             setIsloading(false);
+            setAlertType("success");
             setError(result.message);
           }
         })
         .catch((error) => {
           setIsloading(false);
           setError(error.message);
+          setAlertType("error");
           console.log("error", error);
         });
     }
   };
+
+  useEffect(() => {
+    fetchCategories();
+    console.log(categories);
+  }, []);
 
   return (
     <KeyboardAvoidingView style={styles.container}>
@@ -135,7 +215,7 @@ const AddProductScreen = ({ navigation, route }) => {
           <Text style={styles.screenNameParagraph}>Add product details</Text>
         </View>
       </View>
-      <CustomAlert message={error} type={"error"} />
+      <CustomAlert message={error} type={alertType} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{ flex: 1, width: "100%" }}
@@ -143,11 +223,12 @@ const AddProductScreen = ({ navigation, route }) => {
         <View style={styles.formContainer}>
           <View style={styles.imageContainer}>
             {image ? (
-              <Image
-                source={{ uri: image }}
-                style={{ width: 200, height: 200 }}
-                onPress={pickImage}
-              />
+              <TouchableOpacity style={styles.imageHolder} onPress={pickImage}>
+                <Image
+                  source={{ uri: image }}
+                  style={{ width: 200, height: 200 }}
+                />
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.imageHolder} onPress={pickImage}>
                 <AntDesign name="pluscircle" size={50} color={colors.muted} />
@@ -173,6 +254,7 @@ const AddProductScreen = ({ navigation, route }) => {
             value={price}
             setValue={setPrice}
             placeholder={"Price"}
+            keyboardType={"number-pad"}
             placeholderTextColor={colors.muted}
             radius={5}
           />
@@ -180,6 +262,7 @@ const AddProductScreen = ({ navigation, route }) => {
             value={quantity}
             setValue={setQuantity}
             placeholder={"Quantity"}
+            keyboardType={"number-pad"}
             placeholderTextColor={colors.muted}
             radius={5}
           />
@@ -192,6 +275,22 @@ const AddProductScreen = ({ navigation, route }) => {
           />
         </View>
       </ScrollView>
+      <DropDownPicker
+        placeholder={"Select Product Category"}
+        open={open}
+        value={category}
+        items={items}
+        setOpen={setOpen}
+        setValue={setCategory}
+        setItems={setItems}
+        disabled={statusDisable}
+        disabledStyle={{
+          backgroundColor: colors.light,
+          borderColor: colors.white,
+        }}
+        labelStyle={{ color: colors.muted }}
+        style={{ borderColor: "#fff", elevation: 5 }}
+      />
       <View style={styles.buttomContainer}>
         <CustomButton text={"Add Product"} onPress={addProductHandle} />
       </View>
@@ -228,6 +327,7 @@ const styles = StyleSheet.create({
   },
 
   buttomContainer: {
+    marginTop: 10,
     width: "100%",
   },
   bottomContainer: {

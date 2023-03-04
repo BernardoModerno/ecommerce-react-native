@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { colors, network } from "../../constants";
 import CustomInput from "../../components/CustomInput";
 import CustomButton from "../../components/CustomButton";
@@ -18,98 +18,73 @@ import * as ImagePicker from "expo-image-picker";
 import ProgressDialog from "react-native-progress-dialog";
 import { AntDesign } from "@expo/vector-icons";
 
-const EditProductScreen = ({ navigation, route }) => {
-  const { product, authUser } = route.params;
+const AddCategoryScreen = ({ navigation, route }) => {
+  const { authUser } = route.params;
   const [isloading, setIsloading] = useState(false);
-  const [label, setLabel] = useState("Updating...");
   const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [sku, setSku] = useState("");
-  const [image, setImage] = useState("");
-  const [error, setError] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [image, setImage] = useState("easybuycat.png");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("garments");
+  const [error, setError] = useState("");
   const [alertType, setAlertType] = useState("error");
+  const [user, setUser] = useState({});
 
-  useEffect(() => {
-    setImage(`${network.serverip}/uploads/${product?.image}`);
-    setTitle(product.title);
-    setSku(product.sku);
-    setQuantity(product.quantity.toString());
-    setPrice(product.price.toString());
-    setDescription(product.description);
-  }, []);
+  var payload = [];
 
-  var myHeaders = new Headers();
-  myHeaders.append("x-auth-token", authUser.token);
-  myHeaders.append("Content-Type", "application/json");
-
-  var raw = JSON.stringify({
-    title: title,
-    sku: sku,
-    price: price,
-    image: image,
-    description: description,
-    category: category,
-    quantity: quantity,
-  });
-
-  var requestOptions = {
-    method: "POST",
-    headers: myHeaders,
-    body: raw,
-    redirect: "follow",
-  };
-
-  const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-    console.log(result);
-    if (!result.cancelled) {
-      setImage(result.uri);
+  const getToken = (obj) => {
+    try {
+      setUser(JSON.parse(obj));
+    } catch (e) {
+      setUser(obj);
+      return obj.token;
     }
+    return JSON.parse(obj).token;
   };
 
-  const editProductHandle = () => {
+  const addCategoryHandle = () => {
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", authUser.token);
+    myHeaders.append("Content-Type", "application/json");
+
+    var raw = JSON.stringify({
+      title: title,
+      image: image,
+      description: description,
+    });
+
+    var requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    };
+
     setIsloading(true);
     if (title == "") {
       setError("Please enter the product title");
       setIsloading(false);
-    } else if (price == 0) {
-      setError("Please enter the product price");
-      setIsloading(false);
-    } else if (quantity <= 0) {
-      setError("Quantity must be greater then 1");
-      setIsloading(false);
-    } else if (image == null) {
+    } else if (description == "") {
       setError("Please upload the product image");
       setIsloading(false);
+    } else if (image == null) {
+      setError("Please upload the Catergory image");
+      setIsloading(false);
     } else {
-      console.log(`${network.serverip}"/update-product?id=${product._id}"`);
-      fetch(
-        `${network.serverip}/update-product?id=${product._id}`,
-        requestOptions
-      )
+      fetch(network.serverip + "/category", requestOptions)
         .then((response) => response.json())
         .then((result) => {
+          console.log(result);
           if (result.success == true) {
             setIsloading(false);
+            setAlertType("success");
             setError(result.message);
-            setPrice("");
-            setQuantity("");
-            setSku("");
             setTitle("");
+            setDescription("");
           }
         })
         .catch((error) => {
           setIsloading(false);
           setError(error.message);
+          setAlertType("error");
           console.log("error", error);
         });
     }
@@ -118,7 +93,7 @@ const EditProductScreen = ({ navigation, route }) => {
   return (
     <KeyboardAvoidingView style={styles.container}>
       <StatusBar></StatusBar>
-      <ProgressDialog visible={isloading} label={label} />
+      <ProgressDialog visible={isloading} label={"Adding ..."} />
       <View style={styles.TopBarContainer}>
         <TouchableOpacity
           onPress={() => {
@@ -135,36 +110,18 @@ const EditProductScreen = ({ navigation, route }) => {
       </View>
       <View style={styles.screenNameContainer}>
         <View>
-          <Text style={styles.screenNameText}>Edit Product</Text>
+          <Text style={styles.screenNameText}>Add Category</Text>
         </View>
         <View>
-          <Text style={styles.screenNameParagraph}>Edit product details</Text>
+          <Text style={styles.screenNameParagraph}>Add category details</Text>
         </View>
       </View>
-      <CustomAlert message={error} type={"error"} />
-      <ScrollView style={{ flex: 1, width: "100%" }}>
+      <CustomAlert message={error} type={alertType} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1, width: "100%" }}
+      >
         <View style={styles.formContainer}>
-          <View style={styles.imageContainer}>
-            {image ? (
-              <TouchableOpacity style={styles.imageHolder} onPress={pickImage}>
-                <Image
-                  source={{ uri: image }}
-                  style={{ width: 200, height: 200 }}
-                />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.imageHolder} onPress={pickImage}>
-                <AntDesign name="pluscircle" size={50} color={colors.muted} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <CustomInput
-            value={sku}
-            setValue={setSku}
-            placeholder={"SKU"}
-            placeholderTextColor={colors.muted}
-            radius={5}
-          />
           <CustomInput
             value={title}
             setValue={setTitle}
@@ -172,22 +129,7 @@ const EditProductScreen = ({ navigation, route }) => {
             placeholderTextColor={colors.muted}
             radius={5}
           />
-          <CustomInput
-            value={price}
-            setValue={setPrice}
-            placeholder={"Price"}
-            keyboardType={"number-pad"}
-            placeholderTextColor={colors.muted}
-            radius={5}
-          />
-          <CustomInput
-            value={quantity}
-            setValue={setQuantity}
-            placeholder={"Quantity"}
-            keyboardType={"number-pad"}
-            placeholderTextColor={colors.muted}
-            radius={5}
-          />
+
           <CustomInput
             value={description}
             setValue={setDescription}
@@ -197,14 +139,15 @@ const EditProductScreen = ({ navigation, route }) => {
           />
         </View>
       </ScrollView>
+
       <View style={styles.buttomContainer}>
-        <CustomButton text={"Edit Product"} onPress={editProductHandle} />
+        <CustomButton text={"Add Category"} onPress={addCategoryHandle} />
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-export default EditProductScreen;
+export default AddCategoryScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -233,6 +176,7 @@ const styles = StyleSheet.create({
   },
 
   buttomContainer: {
+    marginTop: 10,
     width: "100%",
   },
   bottomContainer: {
