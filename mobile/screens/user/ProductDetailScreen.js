@@ -6,31 +6,55 @@ import {
   StatusBar,
   Text,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import cartIcon from "../../assets/icons/cart_beg.png";
-import { colors } from "../../constants";
+import { colors, network } from "../../constants";
 import CustomButton from "../../components/CustomButton";
+// import ProductImage from "../../assets/image/shirt1.png";
+import { useSelector, useDispatch } from "react-redux";
+import { bindActionCreators } from "redux";
+import * as actionCreaters from "../../states/actionCreaters/actionCreaters";
+// import { _success, _info, _warning, _error } from "react-color-log";
 
-import ProductImage from "../../assets/image/shirt1.png";
+const ProductDetailScreen = ({ navigation, route }) => {
+  const { product } = route.params;
+  const cartproduct = useSelector((state) => state.product);
+  const dispatch = useDispatch();
 
-const ProductDetailScreen = ({ navigation }) => {
+  const { addCartItem } = bindActionCreators(actionCreaters, dispatch);
+
+  const handleAddToCat = (item) => {
+    addCartItem(item);
+  };
+
   const [onWishlist, setOnWishlist] = useState(false);
+  const [avaiableQuantity, setAvaiableQuantity] = useState(0);
   const [quantity, setQuantity] = useState(0);
-  const [productName, setProductName] = useState("MockUp Shirt Mix ");
+  const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState(10);
-  const [productDescription, setProductDescirption] = useState(
-    "Wear the look you love up top with the Nike Dri-FIT Swoosh Air Force 1 Sports shirt.It captures all your favourite sneaker element."
-  );
+  const [productDescription, setProductDescirption] = useState("");
+  const [productImage, SetProductImage] = useState("");
 
   const handleIncreaseButton = (quantity) => {
-    setQuantity(quantity + 1);
+    if (avaiableQuantity > quantity) {
+      setQuantity(quantity + 1);
+    }
   };
   const handleDecreaseButton = (quantity) => {
     if (quantity > 0) {
       setQuantity(quantity - 1);
     }
   };
+
+  useEffect(() => {
+    setProductName(product.title);
+    setProductDescirption(product.description);
+    setProductPrice(product.price);
+    setQuantity(0);
+    setAvaiableQuantity(product.quantity);
+    SetProductImage(product.image);
+  }, []);
   return (
     <View style={styles.container}>
       <StatusBar></StatusBar>
@@ -49,16 +73,25 @@ const ProductDetailScreen = ({ navigation }) => {
 
         <View></View>
         <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("cart");
-          }}
+          style={styles.cartIconContainer}
+          onPress={() => navigation.navigate("cart")}
         >
+          {cartproduct.length > 0 ? (
+            <View style={styles.cartItemCountContainer}>
+              <Text style={styles.cartItemCountText}>{cartproduct.length}</Text>
+            </View>
+          ) : (
+            <></>
+          )}
           <Image source={cartIcon} />
         </TouchableOpacity>
       </View>
       <View style={styles.bodyContainer}>
         <View style={styles.productImageContainer}>
-          <Image source={ProductImage} style={styles.productImage} />
+          <Image
+            source={{ uri: `${network.serverip}/uploads/${productImage}` }}
+            style={styles.productImage}
+          />
         </View>
         <View style={styles.productInfoContainer}>
           <View style={styles.productInfoTopContainer}>
@@ -116,12 +149,16 @@ const ProductDetailScreen = ({ navigation }) => {
               </View>
             </View>
             <View style={styles.productButtonContainer}>
-              <CustomButton
-                text={"Add to Cart"}
-                onPress={() => {
-                  navigation.navigate("cart");
-                }}
-              />
+              {avaiableQuantity > 0 ? (
+                <CustomButton
+                  text={"Add to Cart"}
+                  onPress={() => {
+                    handleAddToCat(product);
+                  }}
+                />
+              ) : (
+                <CustomButton text={"Out of Stock"} disabled={true} />
+              )}
             </View>
           </View>
         </View>
@@ -319,5 +356,28 @@ const styles = StyleSheet.create({
   counterCountText: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  cartIconContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cartItemCountContainer: {
+    position: "absolute",
+    zIndex: 10,
+    top: -10,
+    left: 10,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: 22,
+    width: 22,
+    backgroundColor: colors.danger,
+    borderRadius: 11,
+  },
+  cartItemCountText: {
+    color: colors.white,
+    fontWeight: "bold",
+    fontSize: 10,
   },
 });

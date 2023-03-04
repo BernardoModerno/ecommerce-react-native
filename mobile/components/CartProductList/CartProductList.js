@@ -1,19 +1,21 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  TouchableOpacity,
-  Animated,
-} from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import React from "react";
-import { colors } from "../../constants";
+import { colors, network } from "../../constants";
 
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const CartProductList = ({ image, title, price, handleDelete }) => {
+const CartProductList = ({
+  image,
+  title,
+  price,
+  quantity = 1,
+  handleDelete,
+  onPressDecrement,
+  onPressIncrement,
+}) => {
+  console.log(`${network.serverip}/uploads/${image}`);
   const rightSwipe = () => {
     return (
       <View style={styles.deleteButtonContainer}>
@@ -33,11 +35,33 @@ const CartProductList = ({ image, title, price, handleDelete }) => {
         <Swipeable renderRightActions={rightSwipe}>
           <View style={styles.container}>
             <View style={styles.imageContainer}>
-              <Image source={image} style={styles.productImage} />
+              <Image
+                source={{ uri: `${network.serverip}/uploads/${image}` }}
+                style={styles.productImage}
+              />
             </View>
             <View style={styles.productInfoContainer}>
               <Text style={styles.productTitle}>{title}</Text>
-              <Text style={styles.productPrice}>{price} $</Text>
+              <Text style={styles.productTitle}>{quantity}</Text>
+              <View style={styles.productListBottomContainer}>
+                <Text style={styles.productPrice}>{price * quantity} $</Text>
+
+                <View style={styles.counter}>
+                  <TouchableOpacity
+                    style={styles.counterButtonContainer}
+                    onPress={onPressDecrement}
+                  >
+                    <Text style={styles.counterButtonText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.counterCountText}>{quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.counterButtonContainer}
+                    onPress={onPressIncrement}
+                  >
+                    <Text style={styles.counterButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
         </Swipeable>
@@ -103,5 +127,46 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
     marginBottom: 10,
     width: 70,
+  },
+  productListBottomContainer: {
+    width: "auto",
+    paddingRight: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  counter: {
+    backgroundColor: colors.white,
+    width: 150,
+    marginLeft: 20,
+    padding: 5,
+    borderRadius: 5,
+    borderBottomRightRadius: 10,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  counterButtonContainer: {
+    display: "flex",
+    width: 30,
+    height: 30,
+    marginLeft: 10,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.muted,
+    borderRadius: 15,
+    elevation: 2,
+  },
+  counterButtonText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.white,
+  },
+  counterCountText: {
+    fontSize: 20,
+    fontWeight: "bold",
   },
 });

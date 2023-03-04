@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { colors, network } from "../../constants";
 import CustomInput from "../../components/CustomInput";
 import CustomButton from "../../components/CustomButton";
@@ -18,40 +18,36 @@ import * as ImagePicker from "expo-image-picker";
 import ProgressDialog from "react-native-progress-dialog";
 import { AntDesign } from "@expo/vector-icons";
 
-const AddProductScreen = ({ navigation, route }) => {
-  const { authUser } = route.params;
+const EditProductScreen = ({ navigation, route }) => {
+  const { product, authUser } = route.params;
+  console.log(product);
   const [isloading, setIsloading] = useState(false);
+  const [label, setLabel] = useState("Updating...");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [sku, setSku] = useState("");
   const [image, setImage] = useState(null);
   const [error, setError] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("garments");
+  const [quanlity, setQuantity] = useState("");
+
+  useEffect(() => {
+    // setPrice(product.price);
+    setImage(null);
+    setTitle(product.title);
+    setSku(product.sku);
+    setQuantity("1");
+    setPrice(product.price.toString());
+  }, []);
 
   var myHeaders = new Headers();
   myHeaders.append("x-auth-token", authUser.token);
   myHeaders.append("Content-Type", "application/json");
 
-  // var raw = JSON.stringify({
-  //   title: title,
-  //   sku: sku,
-  //   price: price,
-  //   image: null,
-  //   description: description,
-  //   category: category,
-  //   quantity: quantity,
-  // });
-
   var raw = JSON.stringify({
     title: title,
     sku: sku,
     price: price,
-    image: "null",
-    description: description,
-    category: category,
-    quantity: quantity,
+    image: "",
   });
 
   var requestOptions = {
@@ -77,7 +73,7 @@ const AddProductScreen = ({ navigation, route }) => {
     }
   };
 
-  const addProductHandle = () => {
+  const editProductHandle = () => {
     setIsloading(true);
     if (title == "") {
       setError("Please enter the product title");
@@ -85,20 +81,28 @@ const AddProductScreen = ({ navigation, route }) => {
     } else if (price == 0) {
       setError("Please enter the product price");
       setIsloading(false);
-    } else if (quantity <= 0) {
+    } else if (quanlity <= 0) {
       setError("Quantity must be greater then 1");
       setIsloading(false);
     } else if (image == null) {
       setError("Please upload the product image");
       setIsloading(false);
     } else {
-      fetch(network.serverip + "/product", requestOptions)
+      console.log(`${network.serverip}"/update-product?id=${product._id}"`);
+      fetch(
+        `${network.serverip}/update-product?id=${product._id}`,
+        requestOptions
+      )
         .then((response) => response.json())
         .then((result) => {
-          console.log(result);
+          //   console.log(result);
           if (result.success == true) {
             setIsloading(false);
             setError(result.message);
+            setPrice("");
+            setQuantity("");
+            setSku("");
+            setTitle("");
           }
         })
         .catch((error) => {
@@ -112,7 +116,7 @@ const AddProductScreen = ({ navigation, route }) => {
   return (
     <KeyboardAvoidingView style={styles.container}>
       <StatusBar></StatusBar>
-      <ProgressDialog visible={isloading} label={"Adding ..."} />
+      <ProgressDialog visible={isloading} label={label} />
       <View style={styles.TopBarContainer}>
         <TouchableOpacity
           onPress={() => {
@@ -129,17 +133,14 @@ const AddProductScreen = ({ navigation, route }) => {
       </View>
       <View style={styles.screenNameContainer}>
         <View>
-          <Text style={styles.screenNameText}>Add Product</Text>
+          <Text style={styles.screenNameText}>Edit Product</Text>
         </View>
         <View>
-          <Text style={styles.screenNameParagraph}>Add product details</Text>
+          <Text style={styles.screenNameParagraph}>Edit product details</Text>
         </View>
       </View>
       <CustomAlert message={error} type={"error"} />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1, width: "100%" }}
-      >
+      <ScrollView style={{ flex: 1, width: "100%" }}>
         <View style={styles.formContainer}>
           <View style={styles.imageContainer}>
             {image ? (
@@ -177,29 +178,22 @@ const AddProductScreen = ({ navigation, route }) => {
             radius={5}
           />
           <CustomInput
-            value={quantity}
+            value={quanlity}
             setValue={setQuantity}
             placeholder={"Quantity"}
-            placeholderTextColor={colors.muted}
-            radius={5}
-          />
-          <CustomInput
-            value={description}
-            setValue={setDescription}
-            placeholder={"Description"}
             placeholderTextColor={colors.muted}
             radius={5}
           />
         </View>
       </ScrollView>
       <View style={styles.buttomContainer}>
-        <CustomButton text={"Add Product"} onPress={addProductHandle} />
+        <CustomButton text={"Edit Product"} onPress={editProductHandle} />
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-export default AddProductScreen;
+export default EditProductScreen;
 
 const styles = StyleSheet.create({
   container: {
