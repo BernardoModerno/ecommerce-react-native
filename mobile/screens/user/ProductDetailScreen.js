@@ -14,6 +14,8 @@ import CustomButton from "../../components/CustomButton";
 import { useSelector, useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import * as actionCreaters from "../../states/actionCreaters/actionCreaters";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomAlert from "../../components/CustomAlert/CustomAlert";
 
 const ProductDetailScreen = ({ navigation, route }) => {
   const { product } = route.params;
@@ -22,37 +24,171 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
   const { addCartItem } = bindActionCreators(actionCreaters, dispatch);
 
+  //method to add item to cart(redux)
   const handleAddToCat = (item) => {
     addCartItem(item);
+  };
+
+  //remove the authUser from async storage and navigate to login
+  const logout = async () => {
+    await AsyncStorage.removeItem("authUser");
+    navigation.replace("login");
   };
 
   const [onWishlist, setOnWishlist] = useState(false);
   const [avaiableQuantity, setAvaiableQuantity] = useState(0);
   const [quantity, setQuantity] = useState(0);
-  const [productName, setProductName] = useState("");
-  const [productPrice, setProductPrice] = useState(10);
-  const [productDescription, setProductDescirption] = useState("");
-  const [productImage, SetProductImage] = useState("");
+  const [productImage, SetProductImage] = useState(" ");
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [error, setError] = useState("");
+  const [isDisable, setIsDisbale] = useState(true);
+  const [alertType, setAlertType] = useState("error");
 
+  //method to fetch wishlist from server using API call
+  const fetchWishlist = async () => {
+    const value = await AsyncStorage.getItem("authUser"); // get authUser from async storage
+    let user = JSON.parse(value);
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", user.token);
+
+    var requestOptions = {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    };
+    fetch(`${network.serverip}/wishlist`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result?.err === "jwt expired") {
+          logout();
+        }
+        if (result.success) {
+          setWishlistItems(result.data[0].wishlist);
+          setIsDisbale(false);
+
+          //check if the current active product is already in wishlish or not
+          result.data[0].wishlist.map((item) => {
+            if (item?.productId?._id === product?._id) {
+              setOnWishlist(true);
+            }
+          });
+
+          setError("");
+        }
+      })
+      .catch((error) => {
+        setError(error.message);
+        console.log("error", error);
+      });
+  };
+
+  //method to increase the product quantity
   const handleIncreaseButton = (quantity) => {
     if (avaiableQuantity > quantity) {
       setQuantity(quantity + 1);
     }
   };
+
+  //method to decrease the product quantity
   const handleDecreaseButton = (quantity) => {
     if (quantity > 0) {
       setQuantity(quantity - 1);
     }
   };
 
+  //method to add or remove item from wishlist
+  const handleWishlistBtn = async () => {
+    setIsDisbale(true);
+    const value = await AsyncStorage.getItem("authUser");
+    let user = JSON.parse(value);
+
+    if (onWishlist) {
+      var myHeaders = new Headers();
+      myHeaders.append("x-auth-token", user.token);
+
+      var requestOptions = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow",
+      };
+
+      //API call to remove a item in wishlish
+      fetch(
+        `${network.serverip}/remove-from-wishlist?id=${product?._id}`,
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.success) {
+            setError(result.message);
+            setAlertType("success");
+            setOnWishlist(false);
+          } else {
+            setError(result.message);
+            setAlertType("error");
+          }
+          setOnWishlist(!onWishlist);
+        })
+        .catch((error) => {
+          setError(result.message);
+          setAlertType("error");
+          console.log("error", error);
+        });
+      setIsDisbale(false);
+    } else {
+      var myHeaders2 = new Headers();
+      myHeaders2.append("x-auth-token", user.token);
+      myHeaders2.append("Content-Type", "application/json");
+
+      var raw2 = JSON.stringify({
+        productId: product?._id,
+        quantity: 1,
+      });
+
+      var addrequestOptions = {
+        method: "POST",
+        headers: myHeaders2,
+        body: raw2,
+        redirect: "follow",
+      };
+
+      console.log(addrequestOptions);
+
+      //API call to add a item in wishlish
+      fetch(`${network.serverip}/add-to-wishlist`, addrequestOptions)
+        .then((response) => response.json())
+        .then((result) => {
+          console.log(result);
+          if (result.success) {
+            setError(result.message);
+            setAlertType("success");
+            setOnWishlist(true);
+          } else {
+            setError(result.message);
+            setAlertType("error");
+          }
+          setOnWishlist(!onWishlist);
+        })
+        .catch((error) => {
+          setError(result.message);
+          setAlertType("error");
+          console.log("error", error);
+        });
+      setIsDisbale(false);
+    }
+  };
+
+  //set quantity, avaiableQuantity, product image and fetch wishlist on initial render
   useEffect(() => {
-    setProductName(product.title);
-    setProductDescirption(product.description);
-    setProductPrice(product.price);
     setQuantity(0);
     setAvaiableQuantity(product.quantity);
-    SetProductImage(product.image);
+    SetProductImage(`${network.serverip}/uploads/${product?.image}`);
+    fetchWishlist();
   }, []);
+
+  //render whenever the value of wishlistItems change
+  useEffect(() => {}, [wishlistItems]);
+
   return (
     <View style={styles.container}>
       <StatusBar></StatusBar>
@@ -86,21 +222,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
       </View>
       <View style={styles.bodyContainer}>
         <View style={styles.productImageContainer}>
-          <Image
-            source={{ uri: `${network.serverip}/uploads/${productImage}` }}
-            style={styles.productImage}
-          />
+          <Image source={{ uri: productImage }} style={styles.productImage} />
         </View>
+        <CustomAlert message={error} type={alertType} />
         <View style={styles.productInfoContainer}>
           <View style={styles.productInfoTopContainer}>
             <View style={styles.productNameContaier}>
-              <Text style={styles.productNameText}>{productName}</Text>
+              <Text style={styles.productNameText}>{product?.title}</Text>
             </View>
             <View style={styles.infoButtonContainer}>
               <View style={styles.wishlistButtonContainer}>
                 <TouchableOpacity
+                  disabled={isDisable}
                   style={styles.iconContainer}
-                  onPress={() => setOnWishlist(!onWishlist)}
+                  onPress={() => handleWishlistBtn()}
                 >
                   {onWishlist == false ? (
                     <Ionicons name="heart" size={25} color={colors.muted} />
@@ -116,12 +251,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
               </View>
               <View style={styles.productPriceContainer}>
                 <Text style={styles.secondaryTextSm}>Price:</Text>
-                <Text style={styles.primaryTextSm}>{productPrice}$</Text>
+                <Text style={styles.primaryTextSm}>{product?.price}$</Text>
               </View>
             </View>
             <View style={styles.productDescriptionContainer}>
               <Text style={styles.secondaryTextSm}>Description:</Text>
-              <Text>{productDescription}</Text>
+              <Text>{product?.description}</Text>
             </View>
           </View>
           <View style={styles.productInfoBottomContainer}>

@@ -1,12 +1,23 @@
 # React-Native Ecommerce App :bomb:
 
+# Hi, We are Team Charlie! 👋
+
 [![Up to Date](https://github.com/ikatyang/emoji-cheat-sheet/workflows/Up%20to%20Date/badge.svg)](https://github.com/UsamaSarwar/reactnative-ecommerce-charlie)
 
 ## `Development Stack` ➡️ `MERN Stack`
 
 ### `Backend on NodeJs` ➡️ [https://github.com/abidrazaa/backend-node](https://github.com/abidrazaa/backend-node)
 
-Open-Source React Native Ecommerce Cross Platform Mobile App
+Open-Source React Native Ecommerce Cross Platform Mobile App :iphone:
+
+## Mockups
+
+<img align="left" alt="EasyBuy" src="image/easybuy.png" width="1000"/>
+
+.
+
+
+## Features :memo:
 
 - [x] Stack Naviagtion
 - [x] Splash Screen
@@ -24,7 +35,7 @@ Open-Source React Native Ecommerce Cross Platform Mobile App
 - [x] Cart Screen
 - [x] Checkout Screen
 
-## How to Run App
+## How to Run App :white_check_mark:
 
 ### `Clone the repo`
 
@@ -61,6 +72,16 @@ yarn start -- --reset-cache
 The demonstration of Signup flow and the flow of login from normal user and admin can be seen from [here](https://drive.google.com/drive/folders/1jnFENm2_fdwvpfrqEZxrqx9pOThvSMa3)
 
 The demonstration of the app can be seen from [here](https://drive.google.com/drive/folders/1PNyGSzUDNxUtrmtVk9bp8Lp82INrSct-)
+
+# Documentation
+
+The complete documentation of the project i.e. Software Requirement Specifications, Technologies used can be seen from [here](https://docs.google.com/document/d/1I253JrdKuB3wEQxKVfp_DK8Kuxfb8WrvGbtDqrCsHEc)
+
+The mockup designs of the application can be seen from [here](https://docs.google.com/presentation/d/1Imw0qHmIPhe_0FL_rpanTAoip-ps9dP-YuZRfTybnIM/edit#slide=id.gc6fa3c898_0_0)
+
+# Presentation
+
+The presentation of the Mockups can be seen from [here](https://www.youtube.com/watch?v=vgdUdXEXILA)
 
 ## Thanks to all the contributors ❤️
 

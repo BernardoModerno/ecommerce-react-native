@@ -48,8 +48,8 @@ const category = [
 ];
 
 const slides = [
-  require("../../assets/image/banners/banner.jpeg"),
-  require("../../assets/image/banners/banner.jpeg"),
+  require("../../assets/image/banners/banner.png"),
+  require("../../assets/image/banners/banner.png"),
 ];
 
 const HomeScreen = ({ navigation, route }) => {
@@ -59,27 +59,27 @@ const HomeScreen = ({ navigation, route }) => {
   const { addCartItem } = bindActionCreators(actionCreaters, dispatch);
 
   const { user } = route.params;
-  const [isLoading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [refeshing, setRefreshing] = useState(false);
-  const [label, setLabel] = useState("Loading...");
   const [error, setError] = useState("");
   const [userInfo, setUserInfo] = useState({});
   const [searchItems, setSearchItems] = useState([]);
 
+  //method to convert the authUser to json object
   const convertToJSON = (obj) => {
     try {
       setUserInfo(JSON.parse(obj));
     } catch (e) {
-      console.log("converttoJSON:", e);
       setUserInfo(obj);
     }
   };
 
+  //method to navigate to product detail screen of a specific product
   const handleProductPress = (product) => {
     navigation.navigate("productdetail", { product: product });
   };
 
+  //method to add to cart (redux)
   const handleAddToCat = (product) => {
     addCartItem(product);
   };
@@ -90,7 +90,7 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const fetchProduct = () => {
-    fetch(`${network.serverip}/products`, headerOptions)
+    fetch(`${network.serverip}/products`, headerOptions) //API call
       .then((response) => response.json())
       .then((result) => {
         if (result.success) {
@@ -112,12 +112,14 @@ const HomeScreen = ({ navigation, route }) => {
       });
   };
 
+  //method call on pull refresh
   const handleOnRefresh = () => {
     setRefreshing(true);
     fetchProduct();
     setRefreshing(false);
   };
 
+  //convert user to json and fetch products in initial render
   useEffect(() => {
     convertToJSON(user);
     fetchProduct();
@@ -131,9 +133,8 @@ const HomeScreen = ({ navigation, route }) => {
           <Ionicons name="menu" size={30} color={colors.muted} />
         </TouchableOpacity>
         <View style={styles.topbarlogoContainer}>
-          {/* <Text style={styles.toBarText}>Home</Text> */}
           <Image source={easybuylogo} style={styles.logo} />
-          <Text>EasyBuy</Text>
+          <Text style={styles.toBarText}>EasyBuy</Text>
         </View>
         <TouchableOpacity
           style={styles.cartIconContainer}
@@ -199,89 +200,85 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.promotiomSliderContainer}>
-          <SliderBox
-            images={slides}
-            sliderBoxHeight={140}
-            dotColor={colors.primary}
-            inactiveDotColor={colors.muted}
-            paginationBoxVerticalPadding={10}
-            autoplayInterval={6000}
-          />
-        </View>
-        {/* Pervious person design */}
-        {/* <View style={styles.logoContainer}>
-          <Image source={easybuylogo} style={styles.logo} />
-          <View>
-            <Text style={styles.secondaryText}>EasyBuy</Text>
+        <ScrollView nestedScrollEnabled={true}>
+          <View style={styles.promotiomSliderContainer}>
+            <SliderBox
+              images={slides}
+              sliderBoxHeight={140}
+              dotColor={colors.primary}
+              inactiveDotColor={colors.muted}
+              paginationBoxVerticalPadding={10}
+              autoplayInterval={6000}
+            />
           </View>
-        </View> */}
-
-        <View style={styles.primaryTextContainer}>
-          <Text style={styles.primaryText}>Categories</Text>
-        </View>
-        <View style={styles.categoryContainer}>
-          <FlatList
-            showsHorizontalScrollIndicator={false}
-            style={styles.flatListContainer}
-            horizontal={true}
-            data={category}
-            keyExtractor={(item, index) => `${item}-${index}`}
-            renderItem={({ item, index }) => (
-              <View style={{ marginBottom: 10 }} key={index}>
-                <CustomIconButton
-                  key={index}
-                  text={item.title}
-                  image={item.image}
-                  onPress={() =>
-                    navigation.jumpTo("categories", { categoryID: item })
-                  }
-                />
-              </View>
-            )}
-          />
-          <View style={styles.emptyView}></View>
-        </View>
-        <View style={styles.primaryTextContainer}>
-          <Text style={styles.primaryText}>New Arrivals</Text>
-        </View>
-        {products.length === 0 ? (
-          <View style={styles.productCardContainerEmpty}>
-            <Text style={styles.productCardContainerEmptyText}>No Product</Text>
+          <View style={styles.primaryTextContainer}>
+            <Text style={styles.primaryText}>Categories</Text>
           </View>
-        ) : (
-          <View style={styles.productCardContainer}>
+          <View style={styles.categoryContainer}>
             <FlatList
-              refreshControl={
-                <RefreshControl
-                  refreshing={refeshing}
-                  onRefresh={handleOnRefresh}
-                />
-              }
               showsHorizontalScrollIndicator={false}
-              initialNumToRender={5}
+              style={styles.flatListContainer}
               horizontal={true}
-              data={products.reverse().slice(0, 4)}
-              keyExtractor={(item) => item._id}
+              data={category}
+              keyExtractor={(item, index) => `${item}-${index}`}
               renderItem={({ item, index }) => (
-                <View
-                  key={item._id}
-                  style={{ marginLeft: 5, marginBottom: 10, marginRight: 5 }}
-                >
-                  <ProductCard
-                    name={item.title}
+                <View style={{ marginBottom: 10 }} key={index}>
+                  <CustomIconButton
+                    key={index}
+                    text={item.title}
                     image={item.image}
-                    price={item.price}
-                    quantity={item.quantity}
-                    onPress={() => handleProductPress(item)}
-                    onPressSecondary={() => handleAddToCat(item)}
+                    onPress={() =>
+                      navigation.jumpTo("categories", { categoryID: item })
+                    }
                   />
                 </View>
               )}
             />
             <View style={styles.emptyView}></View>
           </View>
-        )}
+          <View style={styles.primaryTextContainer}>
+            <Text style={styles.primaryText}>New Arrivals</Text>
+          </View>
+          {products.length === 0 ? (
+            <View style={styles.productCardContainerEmpty}>
+              <Text style={styles.productCardContainerEmptyText}>
+                No Product
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.productCardContainer}>
+              <FlatList
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refeshing}
+                    onRefresh={handleOnRefresh}
+                  />
+                }
+                showsHorizontalScrollIndicator={false}
+                initialNumToRender={5}
+                horizontal={true}
+                data={products.slice(0, 4)}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item, index }) => (
+                  <View
+                    key={item._id}
+                    style={{ marginLeft: 5, marginBottom: 10, marginRight: 5 }}
+                  >
+                    <ProductCard
+                      name={item.title}
+                      image={`${network.serverip}/uploads/${item.image}`}
+                      price={item.price}
+                      quantity={item.quantity}
+                      onPress={() => handleProductPress(item)}
+                      onPressSecondary={() => handleAddToCat(item)}
+                    />
+                  </View>
+                )}
+              />
+              <View style={styles.emptyView}></View>
+            </View>
+          )}
+        </ScrollView>
       </View>
     </View>
   );
@@ -315,12 +312,12 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    height: 20,
   },
   bodyContainer: {
     width: "100%",
     flexDirecion: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
+
     paddingBottom: 0,
     flex: 1,
   },
@@ -397,7 +394,6 @@ const styles = StyleSheet.create({
   },
   promotiomSliderContainer: {
     margin: 5,
-
     height: 140,
     backgroundColor: colors.light,
   },
@@ -410,7 +406,7 @@ const styles = StyleSheet.create({
     height: 60,
     marginLeft: 10,
   },
-  emptyView: { width: 10 },
+  emptyView: { width: 30 },
   productCardContainer: {
     paddingLeft: 10,
     display: "flex",

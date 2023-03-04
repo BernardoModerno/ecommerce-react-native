@@ -24,7 +24,7 @@ import CustomInput from "../../components/CustomInput";
 
 const CategoriesScreen = ({ navigation, route }) => {
   const { categoryID } = route.params;
-  const [filterItemlenght, setFilterItemlenght] = useState(0);
+
   const [isLoading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [refeshing, setRefreshing] = useState(false);
@@ -33,23 +33,29 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [foundItems, setFoundItems] = useState([]);
   const [filterItem, setFilterItem] = useState("");
 
+  //get the dimenssions of active window
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width
   );
   const windowHeight = Dimensions.get("window").height;
 
+  //initialize the cartproduct with redux data
   const cartproduct = useSelector((state) => state.product);
   const dispatch = useDispatch();
 
   const { addCartItem } = bindActionCreators(actionCreaters, dispatch);
+
+  //method to navigate to product detail screen of specific product
   const handleProductPress = (product) => {
     navigation.navigate("productdetail", { product: product });
   };
 
+  //method to add the product to cart (redux)
   const handleAddToCat = (product) => {
     addCartItem(product);
   };
 
+  //method call on pull refresh
   const handleOnRefresh = () => {
     setRefreshing(true);
     fetchProduct();
@@ -84,6 +90,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   ];
   const [selectedTab, setSelectedTab] = useState(category[0]);
 
+  //method to fetch the product from server using API call
   const fetchProduct = () => {
     var headerOptions = {
       method: "GET",
@@ -95,11 +102,6 @@ const CategoriesScreen = ({ navigation, route }) => {
         if (result.success) {
           setProducts(result.data);
           setFoundItems(result.data);
-          setFilterItemlenght(
-            result.data.filter(
-              (product) => product?.category?._id === selectedTab?._id
-            ).length
-          );
           setError("");
         } else {
           setError(result.message);
@@ -111,12 +113,14 @@ const CategoriesScreen = ({ navigation, route }) => {
       });
   };
 
+  //listener call on tab focus and initlize categoryID
   navigation.addListener("focus", () => {
     if (categoryID) {
       setSelectedTab(categoryID);
     }
   });
 
+  //method to filter the product according to user search in selected category
   const filter = () => {
     const keyword = filterItem;
     if (keyword !== "") {
@@ -130,22 +134,15 @@ const CategoriesScreen = ({ navigation, route }) => {
     }
   };
 
+  //render whenever the value of filterItem change
   useEffect(() => {
     filter();
   }, [filterItem]);
 
+  //fetch the product on initial render
   useEffect(() => {
-    console.log("E1");
     fetchProduct();
   }, []);
-
-  useEffect(() => {
-    setFilterItemlenght(
-      foundItems.filter(
-        (product) => product?.category?._id === selectedTab?._id
-      ).length
-    );
-  }, [selectedTab]);
 
   return (
     <View style={styles.container}>
@@ -179,7 +176,7 @@ const CategoriesScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
       <View style={styles.bodyContainer}>
-        <View style={{ paddingLeft: 20, paddingRight: 20 }}>
+        <View style={{ padding: 0, paddingLeft: 20, paddingRight: 20 }}>
           <CustomInput
             radius={5}
             placeholder={"Search..."}
@@ -207,7 +204,9 @@ const CategoriesScreen = ({ navigation, route }) => {
           )}
         />
 
-        {filterItemlenght === 0 ? (
+        {foundItems.filter(
+          (product) => product?.category?._id === selectedTab?._id
+        ).length === 0 ? (
           <View style={styles.noItemContainer}>
             <View
               style={{
@@ -253,7 +252,7 @@ const CategoriesScreen = ({ navigation, route }) => {
                 <ProductCard
                   cardSize={"large"}
                   name={product.title}
-                  image={product.image}
+                  image={`${network.serverip}/uploads/${product.image}`}
                   price={product.price}
                   quantity={product.quantity}
                   onPress={() => handleProductPress(product)}
@@ -330,8 +329,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     margin: 5,
-
     padding: 5,
+    paddingBottom: 0,
+    paddingTop: 0,
+    marginBottom: 0,
   },
   noItemContainer: {
     width: "100%",

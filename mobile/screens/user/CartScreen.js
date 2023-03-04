@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import cartIcon from "../../assets/icons/cart_beg_active.png";
 import { colors, network } from "../../constants";
 import CartProductList from "../../components/CartProductList/CartProductList";
-import CartEmpty from "../../assets/image/empty_cart.png";
 import CustomButton from "../../components/CustomButton";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -21,17 +20,19 @@ import { bindActionCreators } from "redux";
 
 const CartScreen = ({ navigation }) => {
   const cartproduct = useSelector((state) => state.product);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [refresh, setRefresh] = useState(false);
   const dispatch = useDispatch();
 
   const { removeCartItem, increaseCartItemQuantity, decreaseCartItemQuantity } =
     bindActionCreators(actionCreaters, dispatch);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [refresh, setRefresh] = useState(false);
 
+  //method to remove the item from (cart) redux
   const deleteItem = (id) => {
     removeCartItem(id);
   };
 
+  //method to increase the quantity of the item in(cart) redux
   const increaseQuantity = (id, quantity, avaiableQuantity) => {
     if (avaiableQuantity > quantity) {
       increaseCartItemQuantity({ id: id, type: "increase" });
@@ -39,6 +40,7 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
+  //method to decrease the quantity of the item in(cart) redux
   const decreaseQuantity = (id, quantity) => {
     if (quantity > 1) {
       decreaseCartItemQuantity({ id: id, type: "decrease" });
@@ -46,6 +48,7 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
+  //calcute and the set the total price whenever the value of carproduct change
   useEffect(() => {
     setTotalPrice(
       cartproduct.reduce((accumulator, object) => {
@@ -95,7 +98,7 @@ const CartScreen = ({ navigation }) => {
             <CartProductList
               key={index}
               index={index}
-              image={item.image}
+              image={`${network.serverip}/uploads/${item.image}`}
               title={item.title}
               price={item.price}
               quantity={item.quantity}

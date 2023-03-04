@@ -15,10 +15,11 @@ import { network } from "../../constants";
 
 const MyAccountScreen = ({ navigation, route }) => {
   const [showBox, setShowBox] = useState(true);
+  const [error, setError] = useState("");
   const { user } = route.params;
   const userID = user["_id"];
-  console.log(userID);
 
+  //method for alert
   const showConfirmDialog = (id) => {
     return Alert.alert(
       "Are your sure?",
@@ -38,12 +39,12 @@ const MyAccountScreen = ({ navigation, route }) => {
     );
   };
 
-  const [error, setError] = useState("");
   var requestOptions = {
     method: "GET",
     redirect: "follow",
   };
 
+  //method to delete the account using API call
   const DeleteAccontHandle = (userID) => {
     let fetchURL = network.serverip + "/delete-user?id=" + String(userID);
     console.log(fetchURL);
@@ -52,7 +53,7 @@ const MyAccountScreen = ({ navigation, route }) => {
       .then((result) => {
         if (result.success == true) {
           console.log(result.data);
-          navigation.goBack();
+          navigation.navigate("login");
         } else {
           setError(result.message);
         }
@@ -90,10 +91,11 @@ const MyAccountScreen = ({ navigation, route }) => {
           text={"Change Password"}
           Icon={Ionicons}
           iconName={"key-sharp"}
-          onPress={() =>
-            navigation.navigate("updatepassword", {
-              userID: userID,
-            })
+          onPress={
+            () =>
+              navigation.navigate("updatepassword", {
+                userID: userID,
+              }) // navigate to updatepassword
           }
         />
         <OptionList
@@ -101,7 +103,6 @@ const MyAccountScreen = ({ navigation, route }) => {
           Icon={MaterialIcons}
           iconName={"delete"}
           type={"danger"}
-          // onPress={() => DeleteAccontHandle(userID)}
           onPress={() => showConfirmDialog(userID)}
         />
       </View>

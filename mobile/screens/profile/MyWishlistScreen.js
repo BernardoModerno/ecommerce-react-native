@@ -12,8 +12,8 @@ import { colors, network } from "../../constants";
 import { Ionicons } from "@expo/vector-icons";
 import CustomAlert from "../../components/CustomAlert/CustomAlert";
 import ProgressDialog from "react-native-progress-dialog";
-import OrderList from "../../components/OrderList/OrderList";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import WishList from "../../components/WishList/WishList";
 
 const MyWishlistScreen = ({ navigation, route }) => {
   const { user } = route.params;
@@ -23,23 +23,27 @@ const MyWishlistScreen = ({ navigation, route }) => {
   const [alertType, setAlertType] = useState("error");
   const [error, setError] = useState("");
   const [wishlist, setWishlist] = useState([]);
-  const [UserInfo, setUserInfo] = useState({});
+  const [onWishlist, setOnWishlist] = useState(true);
 
-  const handleView = () => {
-    console.log("view");
+  //method to navigate to the product detail screen of the specific product
+  const handleView = (product) => {
+    navigation.navigate("productdetail", { product: product });
   };
 
+  //method the remove the authUser from Aysnc Storage and navigate back to login screen
   const logout = async () => {
     await AsyncStorage.removeItem("authUser");
     navigation.replace("login");
   };
 
+  //method call on pull refresh
   const handleOnRefresh = () => {
     setRefreshing(true);
-    fetchOrders();
+    fetchWishlist();
     setRefreshing(false);
   };
 
+  //method to fetch the wishlist from server using API call
   const fetchWishlist = () => {
     var myHeaders = new Headers();
     myHeaders.append("x-auth-token", user.token);
@@ -50,9 +54,10 @@ const MyWishlistScreen = ({ navigation, route }) => {
       redirect: "follow",
     };
     setIsloading(true);
-    fetch(`${network.serverip}/wishlist`, requestOptions)
+    fetch(`${network.serverip}/wishlist`, requestOptions) // API call
       .then((response) => response.json())
       .then((result) => {
+        //check if the token is expired
         if (result?.err === "jwt expired") {
           logout();
         }
@@ -69,9 +74,46 @@ const MyWishlistScreen = ({ navigation, route }) => {
       });
   };
 
+  //method to remove the item from wishlist using API call
+  const handleRemoveFromWishlist = (id) => {
+    var myHeaders = new Headers();
+    myHeaders.append("x-auth-token", user.token);
+
+    var requestOptions = {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    };
+
+    fetch(`${network.serverip}/remove-from-wishlist?id=${id}`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          setError(result.message);
+          setAlertType("success");
+        } else {
+          setError(result.message);
+          setAlertType("error");
+        }
+        setOnWishlist(!onWishlist);
+      })
+      .catch((error) => {
+        setError(result.message);
+        setAlertType("error");
+        console.log("error", error);
+      });
+  };
+
+  //fetch the wishlist on initial render
   useEffect(() => {
+    setError("");
     fetchWishlist();
   }, []);
+
+  //fetch the wishlist data from server whenever the value of onWishList change
+  useEffect(() => {
+    fetchWishlist();
+  }, [onWishlist]);
 
   return (
     <View style={styles.container}>
@@ -123,7 +165,18 @@ const MyWishlistScreen = ({ navigation, route }) => {
           }
         >
           {wishlist.map((list, index) => {
-            return <></>;
+            return (
+              <WishList
+                image={`${network.serverip}/uploads/${list?.productId?.image}`}
+                title={list?.productId?.title}
+                description={list?.productId?.description}
+                key={index}
+                onPressView={() => handleView(list?.productId)}
+                onPressRemove={() =>
+                  handleRemoveFromWishlist(list?.productId?._id)
+                }
+              />
+            );
           })}
           <View style={styles.emptyView}></View>
         </ScrollView>
