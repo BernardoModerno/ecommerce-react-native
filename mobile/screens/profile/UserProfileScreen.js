@@ -12,8 +12,10 @@ import OptionList from "../../components/OptionList/OptionList";
 import { colors } from "../../constants";
 
 const UserProfileScreen = ({ navigation, route }) => {
-  const { User } = route.params;
-  const userID = User["_id"];
+  const { user } = route.params;
+  console.log("userprofile:", user);
+  // const userID = User["_id"];
+  const userID = "62e2ff5999b929330f7300c5";
   return (
     <View style={styles.container}>
       <StatusBar style="auto"></StatusBar>
@@ -28,8 +30,8 @@ const UserProfileScreen = ({ navigation, route }) => {
       <View style={styles.UserProfileCardContianer}>
         <UserProfileCard
           Icon={Ionicons}
-          name={User["name"]}
-          email={User["email"]}
+          name={user["name"]}
+          email={user["email"]}
         />
       </View>
       <View style={styles.OptionsContainer}>
@@ -37,7 +39,7 @@ const UserProfileScreen = ({ navigation, route }) => {
           text={"My Account"}
           Icon={Ionicons}
           iconName={"person"}
-          onPress={() => navigation.navigate("myaccount", { userID: userID })}
+          onPress={() => navigation.navigate("myaccount", { user: user })}
         />
         <OptionList
           text={"Notifications"}
